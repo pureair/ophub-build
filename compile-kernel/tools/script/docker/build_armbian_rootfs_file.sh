@@ -49,7 +49,7 @@ init_var() {
     echo -e "${STEPS} Start Initializing Variables..."
 
     # If it is followed by [ : ], it means that the option requires a parameter value
-    local options="v:s:c:k:"
+    local options="v:s:c:k:p:"
     parsed_args=$(getopt -o "${options}" -- "${@}")
     [[ ${?} -ne 0 ]] && error_msg "Parameter parsing failed."
     eval set -- "${parsed_args}"
@@ -88,6 +88,14 @@ init_var() {
                 error_msg "Invalid -k parameter [ ${2} ]!"
             fi
             ;;
+        -p | --PLATFORM_TYPE)
+            if [[ -n "${2}" ]]; then
+                platform_type="${2}"
+                shift 2
+            else
+                error_msg "Invalid -p parameter [ ${2} ]!"
+            fi
+            ;;
         --)
             shift
             break
@@ -112,11 +120,11 @@ redo_rootfs() {
     # Get image kernel version, such as 6.12.56
     image_kernel="$(echo "${image_file}" | grep -oE '[0-9]+\.[0-9]{1,2}\.[0-9]{1,3}' | grep -v "${image_version}" | head -n 1)"
     # Set image save name
-    image_save_name="Armbian_v${image_version}-trunk_k${image_kernel}.img"
+    image_save_name="Armbian_${image_version}-trunk_${version_codename}_${platform_type:-arm64}_${image_kernel}.img"
 
     # Searching for rootfs file
     rootfs_file="$(ls ${cache_path}/rootfs-*.tar.zst 2>/dev/null | head -n 1)"
-    rootfs_save_name="Armbian_v${image_version}-${version_codename}_k${image_kernel}_rootfs"
+    rootfs_save_name="Armbian_${image_version}-${version_codename}_${platform_type:-arm64}_${image_kernel}_rootfs.tar.gz"
 
     # Create temporary directory
     mkdir -p ${tmp_rootfs}
@@ -229,8 +237,8 @@ EOF
         fi
 
         # Compress the rootfs file
-        sudo tar -czf ${rootfs_save_name}.tar.gz *
-        sudo mv -f ${rootfs_save_name}.tar.gz ../
+        sudo tar -czf ${rootfs_save_name} *
+        sudo mv -f ${rootfs_save_name} ../
         [[ "${?}" == "0" ]] && echo -e "${INFO} 06. Making Armbian rootfs completed." || error_msg "06. Failed to redo rootfs!"
     else
         error_msg "02. Failed to find rootfs file!"
@@ -257,12 +265,18 @@ EOF
     sudo rm -rf $(ls . | grep -v "^output$" | xargs)
     [[ "${?}" == "0" ]] && echo -e "${INFO} 09. Armbian source code cleanup completed." || error_msg "09. Failed to clean up!"
 
+    cd ${current_path}/
     sync && sleep 3
 }
 
 echo -e "${STEPS} Start to redo the Armbian rootfs file."
+echo -e "${INFO} Current path: [ ${current_path} ]"
 
 # Initialize variables
 init_var "${@}"
 # Redo Armbian rootfs
 redo_rootfs
+# All process completed
+wait
+
+echo -e "${SUCCESS} Armbian rootfs file redo completed."
