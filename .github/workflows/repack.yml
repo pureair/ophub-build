@@ -17,7 +17,7 @@ on:
         options:
           - trixie
           - bookworm
-          - bullseye
+                    
           - noble
           - jammy
       armbian_board:
@@ -29,7 +29,8 @@ on:
           - all
           - top55
           - after55
-          - a311d-oes_s905d_s905x3_s922x-ct2000_wxy-oect
+          - a311d-oes_s922x-oes-plus_wxy-oect
+          - s905d_s905x3_s912_s922x-ct2000
           - a311d
           - a311d-oes
           - alark35-3500
@@ -77,7 +78,7 @@ on:
           - r68s
           - renegade-rk3328
           - rk3318-box
-          - rock-4d
+                   
           - rock5b
           - rock5c
           - ruisen-box
@@ -236,14 +237,15 @@ on:
         options:
           - ext4
           - btrfs
-      armbian_storage:
-        description: "Select image storage type."
+      armbian_edition:
+        description: "Select image edition type."
         required: false
-        default: "save"
+        default: "server"
         type: choice
         options:
-          - save
-          - temp
+          - server
+          - desktop
+          - beta
       builder_name:
         description: "Set Armbian builder signature."
         required: false
@@ -335,7 +337,7 @@ jobs:
                 -H "Accept: application/vnd.github+json" \
                 -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
                 https://api.github.com/repos/${{ github.repository }}/releases?per_page=100 | \
-                jq -r --arg RTK "Armbian_${{ inputs.set_release }}_" \
+                jq -r --arg RTK "Armbian_${{ inputs.set_release }}_arm64_" \
                 --arg BOARD "-trunk_" \
                 '[.[] | select(.tag_name | contains($RTK))] |
                 map(.assets[] | select(.browser_download_url | contains($BOARD) and endswith(".img.gz"))) |
@@ -353,7 +355,7 @@ jobs:
           [[ "${?}" -ne "0" ]] && echo "Invalid Armbian image download address." && exit 1
           cd "${armbian_buildpath}" && gzip -df *.img.gz && sync
 
-          echo "build_tag=Armbian_${{ inputs.set_release }}_${{ inputs.armbian_storage }}_$(date +"%Y.%m")" >> ${GITHUB_OUTPUT}
+          echo "build_tag=Armbian_${{ inputs.set_release }}_arm64_${{ inputs.armbian_edition }}_$(date +"%Y.%m")" >> ${GITHUB_ENV}
           echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: Rebuild Armbian [ ${{ inputs.set_release }} ]
@@ -374,17 +376,19 @@ jobs:
         uses: ncipollo/release-action@main
         if: ${{ env.PACKAGED_STATUS }} == 'success' && !cancelled()
         with:
-          tag: ${{ steps.down.outputs.build_tag }}
+          tag: ${{ env.build_tag }}
           artifacts: ${{ env.PACKAGED_OUTPUTPATH }}/*
           allowUpdates: true
           removeArtifacts: false
           replacesArtifacts: true
+          makeLatest: true
           token: ${{ secrets.GITHUB_TOKEN }}
           body: |
             ### Armbian Image information
-            - Default username: root
-            - Default password: 1234
-            - Install command: armbian-install
-            - Update command: armbian-update
-            ### Armbian Image Verification
-            - sha256sum
+            - Default username: `root`
+            - Default password: `1234`
+            - Install command: `armbian-install`
+            - Update command: `armbian-update`
+            ### Applicable platform
+            - 🐧 `arm64`
+            - 🐋 Docker image: https://hub.docker.com/u/ophub
