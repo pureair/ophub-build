@@ -1,9 +1,9 @@
 #==========================================================================
-# Description: Build Armbian server image
+# Description: Build Armbian arm64 server image
 # Copyright (C) 2021 https://github.com/ophub/amlogic-s9xxx-armbian
 #==========================================================================
 
-name: Build Armbian server image
+name: Build Armbian arm64 server image
 
 on:
   repository_dispatch:
@@ -17,7 +17,7 @@ on:
         options:
           - trixie
           - bookworm
-          - bullseye
+                    
           - noble
           - jammy
       armbian_board:
@@ -29,7 +29,8 @@ on:
           - all
           - top55
           - after55
-          - a311d-oes_s905d_s905x3_s922x-ct2000_wxy-oect
+          - a311d-oes_s922x-oes-plus_wxy-oect
+          - s905d_s905x3_s912_s922x-ct2000
           - a311d
           - a311d-oes
           - alark35-3500
@@ -77,7 +78,7 @@ on:
           - r68s
           - renegade-rk3328
           - rk3318-box
-          - rock-4d
+                   
           - rock5b
           - rock5c
           - ruisen-box
@@ -236,14 +237,15 @@ on:
         options:
           - ext4
           - btrfs
-      armbian_storage:
-        description: "Select image storage type."
+      armbian_edition:
+        description: "Select image edition type."
         required: false
-        default: "save"
+        default: "server"
         type: choice
         options:
-          - save
-          - temp
+          - server
+          - desktop
+          - beta
       builder_name:
         description: "Set Armbian builder signature."
         required: false
@@ -351,7 +353,7 @@ jobs:
         run: |
           # Organize and keep essential files, delete unnecessary files
           chmod +x ${ROOTFS_SCRIPT}
-          ${ROOTFS_SCRIPT} -v ${{ inputs.set_release }} -s true -c true -k true
+          ${ROOTFS_SCRIPT} -v ${{ inputs.set_release }} -s true -c true -k true -p arm64
 
           # Clean build directory except output folder
           cd build/
@@ -359,16 +361,17 @@ jobs:
 
           # Output cleaning result information
           df -hT ${PWD}
-          echo "build_tag=Armbian_${{ inputs.set_release }}_${{ inputs.armbian_storage }}_$(date +"%Y.%m")" >> ${GITHUB_OUTPUT}
+          echo "build_tag=Armbian_${{ inputs.set_release }}_arm64_${{ inputs.armbian_edition }}_$(date +"%Y.%m")" >> ${GITHUB_ENV}
           echo "status=success" >> ${GITHUB_OUTPUT}
 
       - name: Upload Armbian image to Release
         uses: ncipollo/release-action@main
         if: ${{ steps.clean.outputs.status }} == 'success' && !cancelled()
         with:
-          tag: ${{ steps.clean.outputs.build_tag }}
+          tag: ${{ env.build_tag }}
           artifacts: build/output/images/*
           allowUpdates: true
+          makeLatest: true
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Rebuild Armbian
@@ -389,21 +392,22 @@ jobs:
         uses: ncipollo/release-action@main
         if: ${{ env.PACKAGED_STATUS }} == 'success' && !cancelled()
         with:
-          tag: ${{ steps.clean.outputs.build_tag }}
+          tag: ${{ env.build_tag }}
           artifacts: ${{ env.PACKAGED_OUTPUTPATH }}/*
           allowUpdates: true
           removeArtifacts: false
           replacesArtifacts: true
+          makeLatest: true
           token: ${{ secrets.GITHUB_TOKEN }}
           body: |
             ### Armbian Image information
-            - Default username: root
-            - Default password: 1234
-            - Install command: armbian-install
-            - Update command: armbian-update
-            ### Armbian Image Verification
-            - sha256sum
-            ### File System
-            - Btrfs
+            - Default username: `root`
+            - Default password: `1234`
+            - Install command: `armbian-install`
+            - Update command: `armbian-update`
+            ### Applicable platform
+            - 🐧 `arm64`
+            - 🐋 Docker image: https://hub.docker.com/u/ophub
+                   
                            
                    
