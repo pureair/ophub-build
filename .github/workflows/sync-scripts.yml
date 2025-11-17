@@ -105,7 +105,7 @@ jobs:
           
           echo "Appending body content to the release step..."
           
-          yq -i "(.jobs[].steps[] | select(.name == \"Upload Rebuild image to Relea").with.body) += \"${APPEND_TEXT}\"" .github/workflows/build.yml
+          yq -i "(.jobs[].steps[] | select(.name == \"Upload Rebuild image to Release\").with.body) += \"${APPEND_TEXT}\"" .github/workflows/build.yml
           
           echo "Body appending complete and precise."
 
