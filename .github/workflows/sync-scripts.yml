@@ -1,0 +1,136 @@
+name: Update action scripts following upstream
+
+on:
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+# Grant necessary permissions for the GitHub Actions bot to commit and push changes
+permissions:
+  contents: write
+
+jobs:
+  update_and_commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: ⬇️ Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install yq (YAML Processor)
+        id: install_yq
+        run: |
+          # Install yq (Go version) for safe and structural YAML manipulation
+          YQ_VERSION="v4.44.1"
+          echo "Installing yq version $YQ_VERSION..."
+          curl -sL https://github.com/mikefarah/yq/releases/download/${YQ_VERSION}/yq_linux_amd64 -o yq
+          chmod +x yq
+          sudo mv yq /usr/local/bin/yq
+          echo "yq installed."
+
+      # --- Processing for compile-kernel/tools/script/docker/build_armbian_rootfs_file.sh ---
+
+      - name: Download External Workflow for build_armbian_rootfs_file.sh
+        id: download_script
+        run: |
+          # Download the source file and save it to the target path.
+          echo "Downloading file 1/3..."
+          curl -sL \
+            'https://github.com/ophub/amlogic-s9xxx-armbian/raw/refs/heads/main/compile-kernel/tools/script/docker/build_armbian_rootfs_file.sh' \
+            -o compile-kernel/tools/script/docker/build_armbian_rootfs_file.sh
+          echo "File downloaded to compile-kernel/tools/script/docker/build_armbian_rootfs_file.sh"
+
+      # --- Processing for .github/workflows/repack.yml ---
+
+      - name: Download External Workflow for repack.yml
+        id: download_repack
+        run: |
+          # Download the source file and save it to the target path.
+          echo "Downloading file 2/3..."
+          curl -sL \
+            'https://github.com/ophub/amlogic-s9xxx-armbian/raw/refs/heads/main/.github/workflows/build-armbian-using-releases-files.yml' \
+            -o .github/workflows/repack.yml
+          echo "File downloaded to .github/workflows/repack.yml"
+
+      - name: Modify Kernel Default in repack.yml
+        id: modify_repack_action
+        run: |
+          NEW_VALUE='6.1.y_6.12.y'
+          TARGET_PATH='.on.workflow_dispatch.inputs.armbian_kernel.default'
+          
+          echo "Replacing value at path: $TARGET_PATH with '$NEW_VALUE' in repack.yml"
+          # Use yq to precisely target the 'default' key under 'armbian_kernel' input
+          yq -i "$TARGET_PATH = \"$NEW_VALUE\"" .github/workflows/repack.yml
+          
+          echo "Modification complete."
+
+      # --- Processing for .github/workflows/build.yml ---
+
+      - name: Download External Workflow for build.yml
+        id: download_build
+        run: |
+          # Download the source file and save it to the target path.
+          echo "Downloading file 3/3..."
+          curl -sL \
+            'https://github.com/ophub/amlogic-s9xxx-armbian/raw/refs/heads/main/.github/workflows/build-armbian-arm64-server-image.yml' \
+            -o .github/workflows/build.yml
+          echo "File downloaded to .github/workflows/build.yml"
+
+      - name: Modify Kernel Default in build.yml
+        id: modify_build_action
+        run: |
+          NEW_VALUE='wxy-oect'
+          TARGET_PATH='.on.workflow_dispatch.inputs.armbian_board.default'          
+          echo "Replacing value at path: $TARGET_PATH with '$NEW_VALUE' in build.yml"
+          yq -i "$TARGET_PATH = \"$NEW_VALUE\"" .github/workflows/build.yml          
+          echo "Target board default modification complete."
+          
+          NEW_VALUE='6.1.y_6.12.y'
+          TARGET_PATH='.on.workflow_dispatch.inputs.armbian_kernel.default'          
+          echo "Replacing value at path: $TARGET_PATH with '$NEW_VALUE' in build.yml"
+          yq -i "$TARGET_PATH = \"$NEW_VALUE\"" .github/workflows/build.yml          
+          echo "Kernel default modification complete."
+          
+          NEW_VALUE='btrfs'
+          TARGET_PATH='.on.workflow_dispatch.inputs.armbian_fstype.default'          
+          echo "Replacing value at path: $TARGET_PATH with '$NEW_VALUE' in build.yml"
+          yq -i "$TARGET_PATH = \"$NEW_VALUE\"" .github/workflows/build.yml          
+          echo "File system default modification complete."
+
+      - name: ➕ Append Btrfs to Release Body in build.yml
+        id: modify_build_body
+        run: |
+          # This command uses a structural filter to find the 'release-action' step
+          # and appends the new text to its 'body' field.
+          APPEND_TEXT="\n\n### File System\n- Btrfs"
+          
+          echo "Appending body content to the release step..."
+          
+          yq -i '
+          .jobs[].steps[] | 
+          select(.uses == "ncipollo/release-action@main") | 
+          .with.body += "'"${APPEND_TEXT}"'"
+          ' .github/workflows/build.yml
+          
+          echo "Body appending complete and precise."
+
+      - name: 💾 Commit and Push Changes (Both Files)
+        id: commit
+        run: |
+          # Check for changes in both target files
+          if git diff --exit-code .github/workflows/repack.yml .github/workflows/build.yml compile-kernel/tools/script/docker/build_armbian_rootfs_file.sh; then
+            echo "No changes found in either file. Skipping commit."
+          else
+            echo "Changes detected. Committing and pushing the updated files."
+            
+            # Configure git identity for the commit
+            git config user.name 'github-actions[bot]'
+            git config user.email 'github-actions[bot]@users.noreply.github.com'
+
+            # Stage the modified files and create a commit
+            git add .github/workflows/repack.yml .github/workflows/build.yml compile-kernel/tools/script/docker/build_armbian_rootfs_file.sh
+            git commit -m "Update following upstream via automation"
+            
+            # Push the changes back to the current branch
+            git push
+          fi
