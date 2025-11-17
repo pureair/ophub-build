@@ -7,6 +7,7 @@ on:
 # Grant necessary permissions for the GitHub Actions bot to commit and push changes
 permissions:
   contents: write
+  workflows: write
 
 jobs:
   update_and_commit:
