@@ -101,7 +101,7 @@ jobs:
         run: |
           # This command uses a structural filter to find the 'release-action' step
           # and appends the new text to its 'body' field.
-          APPEND_TEXT="\n\n### File System\n- Btrfs"
+          APPEND_TEXT="\n### File System\n- Btrfs"
           
           echo "Appending body content to the release step..."
           
