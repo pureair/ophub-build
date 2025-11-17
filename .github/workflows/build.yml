@@ -360,10 +360,6 @@ jobs:
           allowUpdates: true
           makeLatest: true
           token: ${{ secrets.GITHUB_TOKEN }}
-          body: |2-
-
-            ### File System
-            - Btrfs
       - name: Rebuild Armbian
         uses: ophub/amlogic-s9xxx-armbian@main
         if: ${{ steps.clean.outputs.status }} == 'success' && !cancelled()
