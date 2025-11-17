@@ -105,11 +105,7 @@ jobs:
           
           echo "Appending body content to the release step..."
           
-          yq -i '
-          .jobs[].steps[] | 
-          select(.uses == "ncipollo/release-action@main") | 
-          .with.body += "'"${APPEND_TEXT}"'"
-          ' .github/workflows/build.yml
+          yq -i "(.jobs[].steps[] | select(.uses == \"ncipollo/release-action@main\").with.body) += \"${APPEND_TEXT}\"" .github/workflows/build.yml
           
           echo "Body appending complete and precise."
 
