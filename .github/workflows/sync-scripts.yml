@@ -13,7 +13,7 @@ jobs:
   update_and_commit:
     runs-on: ubuntu-latest
     steps:
-      - name: ⬇️ Checkout Repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -98,7 +98,7 @@ jobs:
           yq -i "$TARGET_PATH = \"$NEW_VALUE\"" .github/workflows/build.yml          
           echo "File system default modification complete."
 
-      - name: ➕ Append Btrfs to Release Body in build.yml
+      - name: Append Btrfs to Release Body in build.yml
         id: modify_build_body
         run: |
           # This command uses a structural filter to find the 'release-action' step
@@ -115,7 +115,7 @@ jobs:
           
           echo "Body appending complete and precise."
 
-      - name: 💾 Commit and Push Changes (Both Files)
+      - name: Commit and Push Changes (Both Files)
         id: commit
         run: |
           # Check for changes in both target files
