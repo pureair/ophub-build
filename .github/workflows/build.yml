@@ -384,4 +384,4 @@ jobs:
           replacesArtifacts: true
           makeLatest: true
           token: ${{ secrets.GITHUB_TOKEN }}
-          body: "### Armbian Image information\n- Default username: `root`\n- Default password: `1234`\n- Install command: `armbian-install`\n- Update command: `armbian-update`\n### Applicable platform\n- \U0001F427 `arm64`\n- \U0001F40B Docker image: https://hub.docker.com/u/ophub\n\n\n### File System\n- Btrfs"
+          body: "### Armbian Image information\n- Default username: `root`\n- Default password: `1234`\n- Install command: `armbian-install`\n- Update command: `armbian-update`\n### Applicable platform\n- \U0001F427 `arm64`\n- \U0001F40B Docker image: https://hub.docker.com/u/ophub\n\n### File System\n- Btrfs"
