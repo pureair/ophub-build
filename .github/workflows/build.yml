@@ -68,6 +68,7 @@ on:
           - nanopc-t6
           - nanopi-r5c
           - nanopi-r5s
+          - nsy-g68-plus
           - orangepi-5-plus
           - orangepi-5b
           - panther-x2
@@ -181,7 +182,7 @@ on:
           - vplus
           - wocyber-a3
           - wxy-oect
-          - wxy-oect-replaced
+          - wxy-oect-mod
           - xiaobao
           - yskj
           - zcube1-max
