@@ -3,8 +3,8 @@ name: Update action scripts following upstream
 on:
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
-  push:
-    branches: [ main ]
+#  push:
+#    branches: [ main ]
 
 jobs:
   update_and_commit:
