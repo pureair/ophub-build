@@ -16,8 +16,8 @@ on:
         options:
           - trixie
           - bookworm
+          - resolute
           - noble
-          - jammy
       armbian_board:
         description: "Select device board."
         required: false
@@ -25,6 +25,11 @@ on:
         type: choice
         options:
           - all
+          - amlogic
+          - rockchip
+          - allwinner
+          - rockchip50
+          - rockchip50_100
           - first50
           - range50_100
           - range100_150
@@ -42,6 +47,9 @@ on:
           - bdkj-bd-one
           - bdy-g18-pro
           - beikeyun
+          - boca-tcn100
+          - boca-tcn200
+          - cd1000
           - chainedbox
           - cm3588-nas
           - crrc
@@ -54,28 +62,36 @@ on:
           - eaidk-610
           - emb3531
           - fine3399
+          - firefly-itx-3588j
           - firefly-jd4
           - firefly-rk3399
           - fmx1-pro
           - fmx1-pro-b
+          - gea-6319
           - gzpeite-p01
           - h28k
+          - h618-devboard
           - h66k
           - h68k
           - h69k
           - h88k
           - h88k-v3
           - h96-max-m2
+          - hk1-rbox-k8s
           - hs530r
+          - ht2
           - hugsun-x99
           - ipc-r
           - jp-tvbox
           - king3399
           - kylin3399
           - lckfb-tspi
+          - lckfb-tspi-3m
           - leez
           - lx-r3s
+          - lyt-t68m
           - lz-d3568
+          - lz-d3588
           - lz-k3568
           - mrkaio-m68s
           - nanopc-t4
@@ -155,6 +171,7 @@ on:
           - s905x3-ip1001m
           - s905x3-q1
           - s905x3-q2
+          - s905x3-tox1
           - s905x3-tx3
           - s905x3-tx3-bz
           - s905x3-ugoosx3
@@ -191,6 +208,7 @@ on:
           - station-m2
           - station-p2
           - sv-33a6x
+          - sv-33a6x-vpu
           - swan1-w28
           - sw799
           - taram
@@ -204,6 +222,8 @@ on:
           - wocyber-a3
           - wxy-oect
           - wxy-oect-mod
+          - x88pro20
+          - x98h
           - xiaobao
           - yskj
           - zcube1-max
@@ -226,11 +246,6 @@ on:
           - 6.12.y_6.18.y
           - 6.1.y_6.12.y
           - 6.1.y_6.18.y
-      auto_kernel:
-        description: "Auto use the latest kernel."
-        required: false
-        default: true
-        type: boolean
       kernel_repo:
         description: "Set the kernel repository."
         required: false
@@ -272,6 +287,10 @@ on:
         options:
           - ophub
           - angel
+      config_board:
+        description: "Set the base Armbian board name."
+        required: false
+        default: "odroidn2"
 env:
   TZ: Etc/UTC
   ROOTFS_SCRIPT: compile-kernel/tools/script/docker/build_armbian_rootfs_file.sh
@@ -282,7 +301,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-      - name: Initialization environment
+      - name: Initialize the build environment
         id: init
         env:
           DEBIAN_FRONTEND: noninteractive
@@ -307,7 +326,7 @@ jobs:
           date -u
           timedatectl status || true
           echo "status=success" >> ${GITHUB_OUTPUT}
-      - name: Create simulated physical disk
+      - name: Create virtual disk for extended storage
         run: |
           mnt_size=$(expr $(df -h /mnt | tail -1 | awk '{print $4}' | sed 's/[[:alpha:]]//g' | sed 's/\..*//') - 1)
           root_size=$(expr $(df -h / | tail -1 | awk '{print $4}' | sed 's/[[:alpha:]]//g' | sed 's/\..*//') - 4)
@@ -325,7 +344,7 @@ jobs:
           sudo chown -R runner:runner /builder
           df -Th
           echo "status=success" >> ${GITHUB_OUTPUT}
-      - name: Download source code
+      - name: Download Armbian source code
         id: down
         working-directory: /builder
         if: ${{ steps.init.outputs.status == 'success' && !cancelled() }}
@@ -340,27 +359,33 @@ jobs:
         working-directory: /builder
         if: ${{ steps.down.outputs.status == 'success' && !cancelled() }}
         run: |
-          # Enable QEMU emulation for ARM architecture
+          # Enable QEMU emulation for ARM cross-compilation
           docker run --rm --privileged multiarch/qemu-user-static --reset -p yes 2>/dev/null || true
-          # Compile method and parameter description: https://docs.armbian.com/Developer-Guide_Build-Options
+
+          # Set the board name for the base Armbian image
+          config_board="${{ inputs.config_board }}"
+          [[ -z "${config_board}" ]] && config_board="odroidn2"
+
+          # Compile options reference: https://docs.armbian.com/Developer-Guide_Build-Options
           cd build/
-              ./compile.sh RELEASE=${{ inputs.set_release }} BOARD=odroidn2 BRANCH=current BUILD_MINIMAL=no \
+              ./compile.sh RELEASE=${{ inputs.set_release }} BOARD=${config_board} BRANCH=current BUILD_MINIMAL=no \
                            BUILD_ONLY=default HOST=armbian BUILD_DESKTOP=no EXPERT=yes KERNEL_CONFIGURE=no \
                            COMPRESS_OUTPUTIMAGE="sha" SHARE_LOG=yes
+
           echo "status=success" >> ${GITHUB_OUTPUT}
-      - name: Organize files and clear space
+      - name: Organize output files and reclaim disk space
         id: clean
         if: ${{ steps.compile.outputs.status == 'success' && !cancelled() }}
         run: |
-          # Organize and keep essential files, delete unnecessary files
+          # Extract essential artifacts and remove build files
           chmod +x ${ROOTFS_SCRIPT}
           ${ROOTFS_SCRIPT} -v ${{ inputs.set_release }} -s true -c true -k true -p arm64
 
-          # Clean build directory except output folder
+          # Remove build files while preserving output
           cd build/
           rm -rf $(ls . | grep -v "^output$" | xargs) 2>/dev/null
 
-          # Output cleaning result information
+          # Display disk usage after cleanup
           df -hT ${PWD}
           echo "build_tag=Armbian_${{ inputs.set_release }}_arm64_${{ inputs.armbian_edition }}_$(date +"%Y.%m")" >> ${GITHUB_ENV}
           echo "status=success" >> ${GITHUB_OUTPUT}
@@ -373,7 +398,7 @@ jobs:
           allowUpdates: true
           makeLatest: true
           token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Rebuild Armbian
+      - name: Rebuild Armbian for target boards
         uses: ophub/amlogic-s9xxx-armbian@main
         if: ${{ steps.clean.outputs.status == 'success' && !cancelled() }}
         with:
@@ -381,12 +406,12 @@ jobs:
           armbian_path: build/output/images/*.img.gz
           armbian_board: ${{ inputs.armbian_board }}
           armbian_kernel: ${{ inputs.armbian_kernel }}
-          auto_kernel: ${{ inputs.auto_kernel }}
+          auto_kernel: true
           kernel_repo: ${{ inputs.kernel_repo }}
           kernel_usage: ${{ inputs.kernel_usage }}
           armbian_fstype: ${{ inputs.armbian_fstype }}
           builder_name: ${{ inputs.builder_name }}
-      - name: Upload Rebuild image to Release
+      - name: Upload rebuilt images to Release
         uses: ncipollo/release-action@main
         if: ${{ env.PACKAGED_STATUS == 'success' && !cancelled() }}
         with:
@@ -397,4 +422,4 @@ jobs:
           replacesArtifacts: true
           makeLatest: true
           token: ${{ secrets.GITHUB_TOKEN }}
-          body: "### Armbian Image information\n- Default username: `root`\n- Default password: `1234`\n- Install command: `armbian-install`\n- Update command: `armbian-update`\n### Applicable platform\n- \U0001F427 `arm64`\n- \U0001F40B Docker image: https://hub.docker.com/u/ophub\n\n### File System\n- Btrfs"
+          body: "### Armbian Image Information\n- Default username: `root`\n- Default password: `1234`\n- Install command: `armbian-install`\n- Update command: `armbian-update`\n### Applicable Platform\n- \U0001F427 `arm64`\n- \U0001F40B Docker image: https://hub.docker.com/u/ophub\n"

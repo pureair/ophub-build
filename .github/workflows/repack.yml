@@ -16,8 +16,8 @@ on:
         options:
           - trixie
           - bookworm
+          - resolute
           - noble
-          - jammy
       armbian_board:
         description: "Select device board."
         required: false
@@ -25,6 +25,11 @@ on:
         type: choice
         options:
           - all
+          - amlogic
+          - rockchip
+          - allwinner
+          - rockchip50
+          - rockchip50_100
           - first50
           - range50_100
           - range100_150
@@ -42,6 +47,9 @@ on:
           - bdkj-bd-one
           - bdy-g18-pro
           - beikeyun
+          - boca-tcn100
+          - boca-tcn200
+          - cd1000
           - chainedbox
           - cm3588-nas
           - crrc
@@ -54,28 +62,36 @@ on:
           - eaidk-610
           - emb3531
           - fine3399
+          - firefly-itx-3588j
           - firefly-jd4
           - firefly-rk3399
           - fmx1-pro
           - fmx1-pro-b
+          - gea-6319
           - gzpeite-p01
           - h28k
+          - h618-devboard
           - h66k
           - h68k
           - h69k
           - h88k
           - h88k-v3
           - h96-max-m2
+          - hk1-rbox-k8s
           - hs530r
+          - ht2
           - hugsun-x99
           - ipc-r
           - jp-tvbox
           - king3399
           - kylin3399
           - lckfb-tspi
+          - lckfb-tspi-3m
           - leez
           - lx-r3s
+          - lyt-t68m
           - lz-d3568
+          - lz-d3588
           - lz-k3568
           - mrkaio-m68s
           - nanopc-t4
@@ -155,6 +171,7 @@ on:
           - s905x3-ip1001m
           - s905x3-q1
           - s905x3-q2
+          - s905x3-tox1
           - s905x3-tx3
           - s905x3-tx3-bz
           - s905x3-ugoosx3
@@ -191,6 +208,7 @@ on:
           - station-m2
           - station-p2
           - sv-33a6x
+          - sv-33a6x-vpu
           - swan1-w28
           - sw799
           - taram
@@ -204,6 +222,8 @@ on:
           - wocyber-a3
           - wxy-oect
           - wxy-oect-mod
+          - x88pro20
+          - x98h
           - xiaobao
           - yskj
           - zcube1-max
@@ -281,7 +301,7 @@ jobs:
     steps:
       - name: Checkout
         uses: actions/checkout@v6
-      - name: Initialization environment
+      - name: Initialize the build environment
         id: init
         env:
           DEBIAN_FRONTEND: noninteractive
@@ -306,7 +326,7 @@ jobs:
           date -u
           timedatectl status || true
           echo "status=success" >> ${GITHUB_OUTPUT}
-      - name: Create simulated physical disk
+      - name: Create virtual disk for extended storage
         run: |
           mnt_size=$(expr $(df -h /mnt | tail -1 | awk '{print $4}' | sed 's/[[:alpha:]]//g' | sed 's/\..*//') - 1)
           root_size=$(expr $(df -h / | tail -1 | awk '{print $4}' | sed 's/[[:alpha:]]//g' | sed 's/\..*//') - 4)
@@ -334,7 +354,7 @@ jobs:
           ln -sf /builder/build ${{ github.workspace }}/build
           ln -sf /builder/build /home/runner/work/_actions/ophub/amlogic-s9xxx-armbian/main/build
 
-          # Get name (file name) and url (API asset URL)
+          # Query the latest release asset via GitHub API
           latest_version=$(curl -s \
               -H "Accept: application/vnd.github+json" \
               -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
@@ -349,22 +369,22 @@ jobs:
               {data: .updated_at, url: .url, name: .name}')
 
           [[ -z "${latest_version}" || "${latest_version}" == "null" ]] && {
-              echo "Invalid Armbian image download address."
+              echo "Error: Failed to resolve Armbian image download URL."
               exit 1
           }
 
-          # Get URL and filename separately
+          # Extract download URL and filename
           latest_url="$(echo ${latest_version} | jq -r '.url')"
           armbian_filename="$(echo ${latest_version} | jq -r '.name')"
 
-          # Download using API method (add octet-stream header)
+          # Download asset via GitHub API (binary stream)
           echo "Downloading: ${armbian_filename}"
           curl -fsSL \
                -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
                -H "Accept: application/octet-stream" \
                "${latest_url}" \
                -o "${armbian_buildpath}/${armbian_filename}"
-          [[ "${?}" -ne "0" ]] && echo "Download failed." && exit 1
+          [[ "${?}" -ne "0" ]] && echo "Error: Download failed." && exit 1
 
           # Decompress the image
           cd "${armbian_buildpath}" && gzip -df *.img.gz && sync
@@ -384,7 +404,7 @@ jobs:
           kernel_usage: ${{ inputs.kernel_usage }}
           armbian_fstype: ${{ inputs.armbian_fstype }}
           builder_name: ${{ inputs.builder_name }}
-      - name: Upload Armbian image to Release
+      - name: Upload Armbian images to Release
         uses: ncipollo/release-action@main
         if: ${{ env.PACKAGED_STATUS == 'success' && !cancelled() }}
         with:
@@ -395,4 +415,4 @@ jobs:
           replacesArtifacts: true
           makeLatest: true
           token: ${{ secrets.GITHUB_TOKEN }}
-          body: "### Armbian Image information\n- Default username: `root`\n- Default password: `1234`\n- Install command: `armbian-install`\n- Update command: `armbian-update`\n### Applicable platform\n- \U0001F427 `arm64`\n- \U0001F40B Docker image: https://hub.docker.com/u/ophub\n"
+          body: "### Armbian Image Information\n- Default username: `root`\n- Default password: `1234`\n- Install command: `armbian-install`\n- Update command: `armbian-update`\n### Applicable Platform\n- \U0001F427 `arm64`\n- \U0001F40B Docker image: https://hub.docker.com/u/ophub\n"
