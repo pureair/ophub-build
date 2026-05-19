@@ -11,9 +11,10 @@ on:
       set_release:
         description: "Select OS Release."
         required: false
-        default: "trixie"
+        default: "all"
         type: choice
         options:
+          - all
           - trixie
           - bookworm
           - resolute
@@ -21,19 +22,18 @@ on:
       armbian_board:
         description: "Select device board."
         required: false
-        default: "all"
+        default: "amlogic"
         type: choice
         options:
-          - all
-          - amlogic
-          - rockchip
           - allwinner
+          - amlogic
           - rockchip50
           - rockchip50_100
+          - rockchip100_150
           - first50
           - range50_100
           - range100_150
-          - last20
+          - last50
           - a311d-oes_s922x-oes-plus_wxy-oect
           - nsy-g16-plus_nsy-g68-plus_bdy-g18-pro
           - s905d_s905x3_s912_s922x-ct2000
@@ -86,7 +86,6 @@ on:
           - indiedroid-nova
           - ipc-r
           - jp-tvbox
-          - kickpi-k1
           - king3399
           - kylin3399
           - lckfb-tspi
@@ -94,6 +93,7 @@ on:
           - leez
           - lubancat-1
           - lubancat-2
+          - lubancat-4
           - lx-r3s
           - lyt-t68m
           - lz-d3568
@@ -304,9 +304,28 @@ on:
 env:
   TZ: Etc/UTC
 jobs:
+  setup:
+    runs-on: ubuntu-24.04
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+    steps:
+      - name: Set build matrix based on set_release input
+        id: set-matrix
+        run: |
+          if [[ "${{ inputs.set_release }}" == "all" ]]; then
+            MATRIX='{"include":[{"release":"trixie"},{"release":"bookworm"},{"release":"resolute"},{"release":"noble"}]}'
+          else
+            MATRIX='{"include":[{"release":"${{ inputs.set_release }}"}]}'
+          fi
+          echo "matrix=${MATRIX}" >> "${GITHUB_OUTPUT}"
   build:
+    needs: setup
     runs-on: ubuntu-24.04
     if: ${{ github.event.repository.owner.id == github.event.sender.id }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(needs.setup.outputs.matrix) }}
+    name: build-armbian-${{ matrix.release }}
     steps:
       - name: Checkout
         uses: actions/checkout@v6
@@ -368,7 +387,7 @@ jobs:
               -H "Accept: application/vnd.github+json" \
               -H "Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}" \
               https://api.github.com/repos/${{ github.repository }}/releases?per_page=20 | \
-              jq -r --arg RTK "Armbian_${{ inputs.set_release }}_arm64_" \
+              jq -r --arg RTK "Armbian_${{ matrix.release }}_arm64_" \
               --arg BOARD "-trunk_" \
               '[.[] | select(.tag_name | contains($RTK))] |
               map(.assets[] | select(.name | contains($BOARD) and endswith(".img.gz"))) |
@@ -398,9 +417,9 @@ jobs:
           # Decompress the image
           cd "${armbian_buildpath}" && gzip -df *.img.gz && sync
 
-          echo "build_tag=Armbian_${{ inputs.set_release }}_arm64_${{ inputs.armbian_edition }}_$(date +"%Y.%m")" >> ${GITHUB_ENV}
+          echo "build_tag=Armbian_${{ matrix.release }}_arm64_${{ inputs.armbian_edition }}_$(date +"%Y.%m")" >> ${GITHUB_ENV}
           echo "status=success" >> ${GITHUB_OUTPUT}
-      - name: Rebuild Armbian [ ${{ inputs.set_release }} ]
+      - name: Rebuild Armbian [ ${{ matrix.release }} ]
         uses: ophub/amlogic-s9xxx-armbian@main
         if: ${{ steps.down.outputs.status == 'success' && !cancelled() }}
         with:
@@ -414,14 +433,14 @@ jobs:
           armbian_fstype: ${{ inputs.armbian_fstype }}
           builder_name: ${{ inputs.builder_name }}
       - name: Upload Armbian images to Release
-        uses: ncipollo/release-action@main
+        uses: ophub/upload-to-releases@main
         if: ${{ env.PACKAGED_STATUS == 'success' && !cancelled() }}
         with:
           tag: ${{ env.build_tag }}
           artifacts: ${{ env.PACKAGED_OUTPUTPATH }}/*
-          allowUpdates: true
-          removeArtifacts: false
-          replacesArtifacts: true
-          makeLatest: true
-          token: ${{ secrets.GITHUB_TOKEN }}
+          allow_updates: true
+          remove_artifacts: false
+          replaces_artifacts: true
+          make_latest: true
+          gh_token: ${{ secrets.GITHUB_TOKEN }}
           body: "### Armbian Image Information\n- Default username: `root`\n- Default password: `1234`\n- Install command: `armbian-install`\n- Update command: `armbian-update`\n### Applicable Platform\n- \U0001F427 `arm64`\n- \U0001F40B Docker image: https://hub.docker.com/u/ophub\n"
