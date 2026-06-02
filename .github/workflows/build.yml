@@ -62,6 +62,8 @@ on:
           - e20c
           - e25
           - eaidk-610
+          - easepi-a2
+          - easepi-r2
           - emb3531
           - fine3399
           - firefly-itx-3588j
@@ -99,6 +101,7 @@ on:
           - lz-d3568
           - lz-d3588
           - lz-k3568
+          - md1000
           - mrkaio-m68s
           - nanopc-t4
           - nanopc-t6
@@ -109,6 +112,7 @@ on:
           - nsy-g68-plus
           - orangepi-3b
           - orangepi-5-plus
+          - orangepi-5-pro
           - orangepi-5b
           - orangepi-zero3
           - painet-p3
@@ -118,7 +122,10 @@ on:
           - r68s
           - renegade-rk3328
           - rk3318-box
+          - roceos-k40pro
           - rock-5-itx
+          - rock-3b
+          - rock-3c
           - rock5b
           - rock5c
           - ruisen-box
@@ -210,6 +217,7 @@ on:
           - s922x-reva
           - s922x-ugoos-am6
           - seewo-sv21
+          - seewo-sv50
           - smart-am40
           - smart-am60
           - station-m1
