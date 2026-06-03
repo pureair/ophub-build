@@ -78,6 +78,12 @@ jobs:
       - name: Modify Kernel Default in build.yml
         id: modify_build_action
         run: |
+          NEW_VALUE='trixie'
+          TARGET_PATH='.on.workflow_dispatch.inputs.set_release.default'          
+          echo "Replacing value at path: $TARGET_PATH with '$NEW_VALUE' in build.yml"
+          yq -i "$TARGET_PATH = \"$NEW_VALUE\"" .github/workflows/build.yml          
+          echo "Target OS Release default modification complete."
+          
           NEW_VALUE='wxy-oect'
           TARGET_PATH='.on.workflow_dispatch.inputs.armbian_board.default'          
           echo "Replacing value at path: $TARGET_PATH with '$NEW_VALUE' in build.yml"
