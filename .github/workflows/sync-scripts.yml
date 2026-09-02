@@ -29,7 +29,7 @@ jobs:
 
       # --- Processing for compile-kernel/tools/ and build-armbian/ scrips ---
 
-      - name: Checkout compile-kernel and build-armbian directories
+      - name: Fetch external compile-kernel and build-armbian folders
         uses: actions/checkout@v5
         with:
           repository: 'ophub/amlogic-s9xxx-armbian'
@@ -38,7 +38,15 @@ jobs:
             compile-kernel
             build-armbian
           sparse-checkout-cone-mode: false
-          path: '.' # Set destination folder if you don't want them in the workspace root
+          path: 'temp_ophub' # Prevents overwriting your repository
+
+      - name: Copy folders and clean up temporary download
+        run: |
+          rm -rf compile-kernel
+          rm -rf build-armbian
+		  cp -r temp_ophub/compile-kernel ./
+          cp -r temp_ophub/build-armbian ./
+          rm -rf temp_ophub
 
       # --- Processing for .github/workflows/repack.yml ---
 
