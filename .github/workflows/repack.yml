@@ -35,7 +35,7 @@ on:
           - range100_150
           - last50
           - a311d-oes_s922x-oes-plus_wxy-oect
-          - nsy-g16-plus_nsy-g68-plus_bdy-g18-pro
+          - nsy-g16-plus_nsy-g68-plus_bdy-g18-pro_bdy-g98
           - s905d_s905x3_s912_s922x-ct2000
           - a311d
           - a311d-oes
@@ -66,6 +66,7 @@ on:
           - eaidk-610
           - easepi-a2
           - easepi-r2
+          - elfboard-elf2
           - emb3531
           - fine3399
           - firefly-itx-3588j
@@ -76,6 +77,7 @@ on:
           - gea-6319
           - gzpeite-p01
           - h28k
+          - h339pc
           - h618-ai-douhe
           - h618-devboard
           - h66k
@@ -123,6 +125,7 @@ on:
           - orangepi-5b
           - orangepi-zero3
           - painet-p3
+          - painet-p5
           - panther-x2
           - photonicat
           - r66s
@@ -235,6 +238,7 @@ on:
           - sv-33a6x-vpu
           - swan1-w28
           - sw799
+          - sz3390
           - taram
           - tanix-tx6
           - tb-ls3399
