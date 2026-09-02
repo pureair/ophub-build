@@ -37,7 +37,6 @@ jobs:
           sparse-checkout: |
             compile-kernel
             build-armbian
-          sparse-checkout-cone-mode: false
           path: 'temp_ophub' # Prevents overwriting your repository
 
       - name: Copy folders and clean up temporary download
