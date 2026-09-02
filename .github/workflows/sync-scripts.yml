@@ -27,17 +27,18 @@ jobs:
           sudo mv yq /usr/local/bin/yq
           echo "yq installed."
 
-      # --- Processing for compile-kernel/tools/script/docker/build_armbian_rootfs_file.sh ---
+      # --- Processing for compile-kernel/tools/ and build-armbian/ scrips ---
 
-      - name: Download External Workflow for build_armbian_rootfs_file.sh
-        id: download_script
-        run: |
-          # Download the source file and save it to the target path.
-          echo "Downloading file 1/3..."
-          curl -sL \
-            'https://github.com/ophub/amlogic-s9xxx-armbian/raw/refs/heads/main/compile-kernel/tools/script/docker/build_armbian_rootfs_file.sh' \
-            -o compile-kernel/tools/script/docker/build_armbian_rootfs_file.sh
-          echo "File downloaded to compile-kernel/tools/script/docker/build_armbian_rootfs_file.sh"
+      - name: Checkout compile-kernel and build-armbian directories
+        uses: actions/checkout@v4
+        with:
+          repository: 'ophub/amlogic-s9xxx-armbian'
+          ref: 'main'
+          sparse-checkout: |
+            compile-kernel
+            build-armbian
+          sparse-checkout-cone-mode: false
+          path: '.' # Set destination folder if you don't want them in the workspace root
 
       # --- Processing for .github/workflows/repack.yml ---
 
