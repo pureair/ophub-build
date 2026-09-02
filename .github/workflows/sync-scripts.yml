@@ -38,6 +38,8 @@ jobs:
             amlogic-s9xxx-armbian-main/compile-kernel \
             amlogic-s9xxx-armbian-main/build-armbian
           echo "Folders completely overwritten and synced."
+        
+      # --- Processing for .github/workflows/repack.yml ---
 
       - name: Download External Workflow for repack.yml
         id: download_repack
