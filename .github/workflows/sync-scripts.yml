@@ -30,7 +30,7 @@ jobs:
       # --- Processing for compile-kernel/tools/ and build-armbian/ scrips ---
 
       - name: Checkout compile-kernel and build-armbian directories
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
         with:
           repository: 'ophub/amlogic-s9xxx-armbian'
           ref: 'main'
