@@ -44,7 +44,7 @@ jobs:
         run: |
           rm -rf compile-kernel
           rm -rf build-armbian
-		  cp -r temp_ophub/compile-kernel ./
+          cp -r temp_ophub/compile-kernel ./
           cp -r temp_ophub/build-armbian ./
           rm -rf temp_ophub
 
