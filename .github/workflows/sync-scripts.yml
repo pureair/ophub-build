@@ -40,7 +40,7 @@ jobs:
       
       - name: Overwrite with rsync
         run: |
-          rsync -av --delete --exclude='.git' --exclude='.github/workflows/sync-scripts.yml' --exclude='README.md' upstream/ .
+          rsync -av --delete --exclude='upstream/' --exclude='.git' --exclude='.github/workflows/sync-scripts.yml' --exclude='README.md' upstream/ .
           rm -rf upstream
 
       # --- Processing for .github/workflows/build-armbian-using-releases-files.yml ---
