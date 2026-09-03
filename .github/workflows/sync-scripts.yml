@@ -101,13 +101,7 @@ jobs:
 
       - name: Commit and Push Changes (Both Files)
         id: commit
-        run: |
-          # Check for changes in both target files
-          if git diff --exit-code ; then
-            echo "No changes found in files. Skipping commit."
-          else
-            echo "Changes detected. Committing and pushing the updated files."
-            
+        run: |           
             # Configure git identity for the commit
             git config user.name 'github-actions[bot]'
             git config user.email 'github-actions[bot]@users.noreply.github.com'
