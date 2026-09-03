@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout Repository
-        uses: actions/checkout@v5
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           token: ${{ secrets.MY_PAT }}
@@ -27,82 +27,66 @@ jobs:
           sudo mv yq /usr/local/bin/yq
           echo "yq installed."
 
-      # --- Processing for compile-kernel/tools/ and build-armbian/ scrips ---
+      # --- Sync from ophub repo ---
 
-      - name: Fetch external compile-kernel and build-armbian folders
+      - name: Checkout ophub repo
+        uses: actions/checkout@v7
+        with:
+          repository: 'ophub/amlogic-s9xxx-armbian'
+          ref: 'main'
+          path: upstream
+          
+      # --- Retain this sync workflow ---
+      
+      - name: Overwrite with rsync
         run: |
-          rm -rf compile-kernel build-armbian
-          echo "Downloading fresh compile-kernel/ and build-armbian/..."
-          curl -sL https://github.com/ophub/amlogic-s9xxx-armbian/archive/refs/heads/main.tar.gz | tar -xz \
-            --strip-components=1 \
-            amlogic-s9xxx-armbian-main/compile-kernel \
-            amlogic-s9xxx-armbian-main/build-armbian
-          echo "Folders completely overwritten and synced."
-        
-      # --- Processing for .github/workflows/repack.yml ---
+          rsync -av --exclude='.git' --exclude='.github/workflows/sync-scripts.yml' --exclude='README.md' upstream/ .
+          rm -rf upstream
 
-      - name: Download External Workflow for repack.yml
-        id: download_repack
-        run: |
-          # Download the source file and save it to the target path.
-          echo "Downloading file 2/3..."
-          curl -sL \
-            'https://github.com/ophub/amlogic-s9xxx-armbian/raw/refs/heads/main/.github/workflows/build-armbian-using-releases-files.yml' \
-            -o .github/workflows/repack.yml
-          echo "File downloaded to .github/workflows/repack.yml"
+      # --- Processing for .github/workflows/build-armbian-using-releases-files.yml ---
 
-      - name: Modify Kernel Default in repack.yml
+      - name: Modify Kernel Default in build-armbian-using-releases-files.yml
         id: modify_repack_action
         run: |
           NEW_VALUE='6.1.y_6.12.y'
           TARGET_PATH='.on.workflow_dispatch.inputs.armbian_kernel.default'
           
-          echo "Replacing value at path: $TARGET_PATH with '$NEW_VALUE' in repack.yml"
+          echo "Replacing value at path: $TARGET_PATH with '$NEW_VALUE' in build-armbian-using-releases-files.yml"
           # Use yq to precisely target the 'default' key under 'armbian_kernel' input
-          yq -i "$TARGET_PATH = \"$NEW_VALUE\"" .github/workflows/repack.yml
+          yq -i "$TARGET_PATH = \"$NEW_VALUE\"" .github/workflows/build-armbian-using-releases-files.yml
           
           echo "Modification complete."
 
-      # --- Processing for .github/workflows/build.yml ---
-
-      - name: Download External Workflow for build.yml
-        id: download_build
-        run: |
-          # Download the source file and save it to the target path.
-          echo "Downloading file 3/3..."
-          curl -sL \
-            'https://github.com/ophub/amlogic-s9xxx-armbian/raw/refs/heads/main/.github/workflows/build-armbian-arm64-server-image.yml' \
-            -o .github/workflows/build.yml
-          echo "File downloaded to .github/workflows/build.yml"
+      # --- Processing for .github/workflows/build-armbian-arm64-server-image.yml ---
 
       - name: Modify Kernel Default in build.yml
         id: modify_build_action
         run: |
           NEW_VALUE='trixie'
           TARGET_PATH='.on.workflow_dispatch.inputs.set_release.default'          
-          echo "Replacing value at path: $TARGET_PATH with '$NEW_VALUE' in build.yml"
-          yq -i "$TARGET_PATH = \"$NEW_VALUE\"" .github/workflows/build.yml          
+          echo "Replacing value at path: $TARGET_PATH with '$NEW_VALUE' in build-armbian-arm64-server-image.yml"
+          yq -i "$TARGET_PATH = \"$NEW_VALUE\"" .github/workflows/build-armbian-arm64-server-image.yml          
           echo "Target OS Release default modification complete."
           
           NEW_VALUE='wxy-oect'
           TARGET_PATH='.on.workflow_dispatch.inputs.armbian_board.default'          
-          echo "Replacing value at path: $TARGET_PATH with '$NEW_VALUE' in build.yml"
-          yq -i "$TARGET_PATH = \"$NEW_VALUE\"" .github/workflows/build.yml          
+          echo "Replacing value at path: $TARGET_PATH with '$NEW_VALUE' in build-armbian-arm64-server-image.yml"
+          yq -i "$TARGET_PATH = \"$NEW_VALUE\"" .github/workflows/build-armbian-arm64-server-image.yml          
           echo "Target board default modification complete."
           
           NEW_VALUE='6.1.y_6.12.y'
           TARGET_PATH='.on.workflow_dispatch.inputs.armbian_kernel.default'          
-          echo "Replacing value at path: $TARGET_PATH with '$NEW_VALUE' in build.yml"
-          yq -i "$TARGET_PATH = \"$NEW_VALUE\"" .github/workflows/build.yml          
+          echo "Replacing value at path: $TARGET_PATH with '$NEW_VALUE' in build-armbian-arm64-server-image.yml"
+          yq -i "$TARGET_PATH = \"$NEW_VALUE\"" .github/workflows/build-armbian-arm64-server-image.yml          
           echo "Kernel default modification complete."
           
           NEW_VALUE='btrfs'
           TARGET_PATH='.on.workflow_dispatch.inputs.armbian_fstype.default'          
-          echo "Replacing value at path: $TARGET_PATH with '$NEW_VALUE' in build.yml"
-          yq -i "$TARGET_PATH = \"$NEW_VALUE\"" .github/workflows/build.yml          
+          echo "Replacing value at path: $TARGET_PATH with '$NEW_VALUE' in build-armbian-arm64-server-image.yml"
+          yq -i "$TARGET_PATH = \"$NEW_VALUE\"" .github/workflows/build-armbian-arm64-server-image.yml          
           echo "File system default modification complete."
 
-      - name: Append Btrfs to Release Body in build.yml
+      - name: Append Btrfs to Release Body in build-armbian-arm64-server-image.yml
         id: modify_build_body
         run: |
           # This command uses a structural filter to find the 'release-action' step
@@ -111,7 +95,7 @@ jobs:
           
           echo "Appending body content to the release step..."
           
-          yq -i "(.jobs[].steps[] | select(.name == \"Upload Rebuild image to Release\").with.body) += \"${APPEND_TEXT}\"" .github/workflows/build.yml
+          yq -i "(.jobs[].steps[] | select(.name == \"Upload Rebuild image to Release\").with.body) += \"${APPEND_TEXT}\"" .github/workflows/build-armbian-arm64-server-image.yml
           
           echo "Body appending complete and precise."
 
@@ -119,8 +103,8 @@ jobs:
         id: commit
         run: |
           # Check for changes in both target files
-          if git diff --exit-code .github/workflows/repack.yml .github/workflows/build.yml compile-kernel/tools/script/docker/build_armbian_rootfs_file.sh; then
-            echo "No changes found in either file. Skipping commit."
+          if git diff --exit-code ; then
+            echo "No changes found in files. Skipping commit."
           else
             echo "Changes detected. Committing and pushing the updated files."
             
@@ -129,7 +113,7 @@ jobs:
             git config user.email 'github-actions[bot]@users.noreply.github.com'
 
             # Stage the modified files and create a commit
-            git add .github/workflows/repack.yml .github/workflows/build.yml compile-kernel/tools/script/docker/build_armbian_rootfs_file.sh
+            git add .
             git commit -m "Update following upstream via automation"
             
             # Push the changes back to the current branch
