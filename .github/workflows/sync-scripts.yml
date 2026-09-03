@@ -102,14 +102,13 @@ jobs:
       - name: Commit and Push Changes (Both Files)
         id: commit
         run: |           
-            # Configure git identity for the commit
-            git config user.name 'github-actions[bot]'
-            git config user.email 'github-actions[bot]@users.noreply.github.com'
+          # Configure git identity for the commit
+          git config user.name 'github-actions[bot]'
+          git config user.email 'github-actions[bot]@users.noreply.github.com'
 
-            # Stage the modified files and create a commit
-            git add .
-            git commit -m "Update following upstream via automation"
+          # Stage the modified files and create a commit
+          git add .
+          git commit -m "Update following upstream via automation"
             
-            # Push the changes back to the current branch
-            git push
-          fi
+          # Push the changes back to the current branch
+          git push
